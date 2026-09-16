@@ -131,15 +131,21 @@ body { font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaH
 /* 首行：左侧预测号码；右侧信息栏绝对定位 → 不再撑高首行，第 2/3 行号码紧贴其上、中间无留白 */
 .first-row { position:relative; margin-top:2px; }
 .first-row .group:first-child { margin-top:0; }
-/* 第一行右侧列：近10期/历史命中率 + 最近中奖 + 历史中奖，右对齐堆叠，只占右侧空白、不挤左侧球号
-   与左侧「三行号码」整体对齐且等高：左列每行球 22px + 行间距 6px → 总高 3×22+2×6 = 78px，
-   故右列 height:78px，顶端 top:0 与左列首行球顶齐、底端贴左列末行球底，
-   四行文字在该 78px 内 space-between 均匀摊开。 */
-.row-right { position:absolute; right:0; top:0; height:78px; width:52%; display:flex; flex-direction:column; justify-content:space-between; align-items:flex-end; text-align:right; }
-.row-right .right-chunk { display:flex; flex-direction:column; align-items:flex-end; }
-.row-right .hit-chip { display:block; white-space:nowrap; font-size:9.5px; line-height:1.0; }
-.recent-prize { display:block; font-size:9.5px; color:#e67e22; line-height:1.0; }
-.max-prize { display:block; font-size:9.5px; color:#c0392b; line-height:1.0; }
+/* 第一行右侧栏：三行文字，逐行与左侧三行号码球「顶端对齐 + 行高一致」
+   左侧每行球 22px、行间距 6px → 行距 28px；右列同样用 22px 行高、28px 行距承载 3 行，
+   故右列总高 = 3×22 + 2×6 = 78px，第 n 行文字顶边 = 左侧第 n 行球顶边（逐行水平对齐）。
+   字号取自「球高 22px 的可用视觉高度」：中文字号 14px + line-height 22px 正好撑满球高。 */
+.row-right { position:absolute; right:0; top:0; height:78px; width:54%;
+  display:flex; flex-direction:column; justify-content:flex-start; align-items:flex-end; text-align:right; }
+.row-right > .rr-line { display:block; height:22px; line-height:22px; margin-top:6px; white-space:nowrap; }
+.row-right > .rr-line:first-child { margin-top:0; }
+.row-right .hit-chip { font-size:13px; }
+.row-right .hit-chip b { font-size:14px; }
+.recent-prize { font-size:13px; color:#e67e22; }
+.recent-prize b { font-size:14px; }
+.max-prize { font-size:13px; color:#c0392b; }
+.max-prize b { font-size:14px; }
+.row-right .sep { opacity:.5; margin:0 1px; }
 /* 历史明细（全屏子网页：占满整屏，列表可滚动） */
 .modal-full { max-width:none; }
 #modalDetail { padding:0; align-items:stretch; }
@@ -456,15 +462,15 @@ function renderPredict(){ var p = DATA.predictions; var next = p.next; var avg =
     var recent = (avg[key]&&avg[key].near10Composite) ? avg[key].near10Composite.toFixed(1)+'%' : '-';
     var series = tail.map(function(r){ return r.hits[key] ? +r.hits[key].composite.toFixed(1) : 0; });
     var rp = recentPrize[key];
-    var rpText = rp ? ('最近中奖：'+rp.issue+' 期 · '+rp.t+' ¥'+rp.money.toLocaleString('zh-CN')) : '最近中奖：暂无';
+    var rpText = rp ? ('最近中奖 <b>'+rp.issue+'</b>期 <b>'+rp.t+'</b>') : '最近中奖 暂无';
     var mp = maxPrize[key];
-    var mpText = mp ? ('历史中奖：'+mp.issue+' 期 · '+mp.t+' ¥'+mp.money.toLocaleString('zh-CN')) : '历史中奖：暂无';
+    var mpText = mp ? ('历史中奖 <b>'+mp.issue+'</b>期 <b>'+mp.t+'</b>') : '历史中奖 暂无';
     var groupsHtml = (pr.groups||[]).map(function(g, idx){
       if(idx===0) return '<div class="first-row"><div class="group">'+minis(g.red,g.blue)+'</div>'
         + '<div class="row-right">'
-        + '<span class="hit-chip">近10期 <b>'+recent+'</b><span class="sep">·</span>历史 <b>'+hist+'</b></span>'
-        + '<span class="right-chunk"><span class="recent-prize">'+rpText+'</span>'
-        + '<span class="max-prize">'+mpText+'</span></span></div></div>';
+        + '<span class="rr-line hit-chip">近10期 <b>'+recent+'</b><span class="sep">·</span>历史 <b>'+hist+'</b></span>'
+        + '<span class="rr-line recent-prize">'+rpText+'</span>'
+        + '<span class="rr-line max-prize">'+mpText+'</span></div></div>';
       return '<div class="group">'+minis(g.red,g.blue)+'</div>';
     }).join('');
     h += '<div class="card algo-card" data-key="'+key+'">'
