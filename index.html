@@ -13,6 +13,10 @@ body { font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaH
 .topbar { background:linear-gradient(135deg,#e74c3c,#c0392b); color:#fff; padding:14px 16px 12px; position:sticky; top:0; z-index:30; }
 .topbar h1 { font-size:17px; margin:0; font-weight:600; }
 .topbar .sub { font-size:11px; opacity:.9; margin-top:2px; }
+/* 「↻ 同步」按钮默认隐藏：数据由后端定时任务自动同步，页面打开即最新，日常无需手动。
+   保留元素与其点击逻辑，应急时可在控制台执行
+   document.getElementById('syncBtn').style.display='inline' 临时唤出。 */
+#syncBtn { display:none; }
 .page { display:none; padding:10px; }
 .page.on { display:block; }
 /* 卡片 */
@@ -126,12 +130,15 @@ body { font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaH
 .detail-link { display:inline-block; font-size:12px; color:#2980b9; text-align:right; }
 /* 首行：左侧预测号码；右侧信息栏绝对定位 → 不再撑高首行，第 2/3 行号码紧贴其上、中间无留白 */
 .first-row { position:relative; margin-top:2px; }
-.first-row .group { margin-top:0; }
-/* 第一行右侧列：近10期/历史命中率 + 最近中奖 + 历史中奖，右对齐堆叠，只占右侧空白、不挤左侧球号 */
-.row-right { position:absolute; right:0; top:0; width:46%; display:flex; flex-direction:column; align-items:flex-end; text-align:right; gap:1px; }
-.row-right .hit-chip { display:block; white-space:nowrap; font-size:11px; }
-.recent-prize { display:block; font-size:11px; color:#e67e22; line-height:1.4; }
-.max-prize { display:block; font-size:11px; color:#c0392b; line-height:1.4; }
+.first-row .group:first-child { margin-top:0; }
+/* 第一行右侧列：近10期/历史命中率 + 最近中奖 + 历史中奖，右对齐堆叠，只占右侧空白、不挤左侧球号
+   与左侧「首行号码」水平对齐且等高：顶端 top:0 与左列首行顶齐，高度取首行球高（22px），
+   三行文字在该 22px 内用 space-between 均匀分布，首行贴顶、末行贴底。 */
+.row-right { position:absolute; right:0; top:0; height:22px; width:52%; display:flex; flex-direction:column; justify-content:space-between; align-items:flex-end; text-align:right; }
+.row-right .right-chunk { display:flex; flex-direction:column; align-items:flex-end; }
+.row-right .hit-chip { display:block; white-space:nowrap; font-size:9.5px; line-height:1.0; }
+.recent-prize { display:block; font-size:9.5px; color:#e67e22; line-height:1.0; }
+.max-prize { display:block; font-size:9.5px; color:#c0392b; line-height:1.0; }
 /* 历史明细（全屏子网页：占满整屏，列表可滚动） */
 .modal-full { max-width:none; }
 #modalDetail { padding:0; align-items:stretch; }
@@ -453,9 +460,10 @@ function renderPredict(){ var p = DATA.predictions; var next = p.next; var avg =
     var mpText = mp ? ('历史中奖：'+mp.issue+' 期 · '+mp.t+' ¥'+mp.money.toLocaleString('zh-CN')) : '历史中奖：暂无';
     var groupsHtml = (pr.groups||[]).map(function(g, idx){
       if(idx===0) return '<div class="first-row"><div class="group">'+minis(g.red,g.blue)+'</div>'
-        + '<div class="row-right"><span class="hit-chip">近10期 <b>'+recent+'</b><span class="sep">·</span>历史 <b>'+hist+'</b></span>'
-        + '<span class="recent-prize">'+rpText+'</span>'
-        + '<span class="max-prize">'+mpText+'</span></div></div>';
+        + '<div class="row-right">'
+        + '<span class="hit-chip">近10期 <b>'+recent+'</b><span class="sep">·</span>历史 <b>'+hist+'</b></span>'
+        + '<span class="right-chunk"><span class="recent-prize">'+rpText+'</span>'
+        + '<span class="max-prize">'+mpText+'</span></span></div></div>';
       return '<div class="group">'+minis(g.red,g.blue)+'</div>';
     }).join('');
     h += '<div class="card algo-card" data-key="'+key+'">'
@@ -562,7 +570,9 @@ $('#btnData').onclick = openAnalysis;
 $('#btnAi').onclick = openAi;
 document.querySelectorAll('.modal-mask').forEach(function(m){ m.addEventListener('click', function(e){ if(e.target===m) closeModal(); }); });
 
-/* 在线同步按钮 */
+/* 在线同步按钮：默认隐藏（后端有 GitHub Actions 定时同步，日常无需手动）。
+   隐藏方式用 CSS（display:none）而非移除元素 —— 这样按钮与事件仍保留，
+   需要应急手动同步时，浏览器控制台执行 document.getElementById('syncBtn').style.display='inline' 即可唤出。 */
 $('#syncBtn').onclick = function(){ var b=$('#syncBtn'); b.textContent='同步中…'; b.disabled=true;
   doSync().then(function(){ return refresh(true); }).catch(function(e){ showSaved('⚠️ 同步失败：'+e.message); }).finally(function(){ b.textContent='↻ 同步'; b.disabled=false; });
 };
