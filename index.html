@@ -132,9 +132,10 @@ body { font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaH
 .first-row { position:relative; margin-top:2px; }
 .first-row .group:first-child { margin-top:0; }
 /* 第一行右侧列：近10期/历史命中率 + 最近中奖 + 历史中奖，右对齐堆叠，只占右侧空白、不挤左侧球号
-   与左侧「首行号码」水平对齐且等高：顶端 top:0 与左列首行顶齐，高度取首行球高（22px），
-   三行文字在该 22px 内用 space-between 均匀分布，首行贴顶、末行贴底。 */
-.row-right { position:absolute; right:0; top:0; height:22px; width:52%; display:flex; flex-direction:column; justify-content:space-between; align-items:flex-end; text-align:right; }
+   与左侧「三行号码」整体对齐且等高：左列每行球 22px + 行间距 6px → 总高 3×22+2×6 = 78px，
+   故右列 height:78px，顶端 top:0 与左列首行球顶齐、底端贴左列末行球底，
+   四行文字在该 78px 内 space-between 均匀摊开。 */
+.row-right { position:absolute; right:0; top:0; height:78px; width:52%; display:flex; flex-direction:column; justify-content:space-between; align-items:flex-end; text-align:right; }
 .row-right .right-chunk { display:flex; flex-direction:column; align-items:flex-end; }
 .row-right .hit-chip { display:block; white-space:nowrap; font-size:9.5px; line-height:1.0; }
 .recent-prize { display:block; font-size:9.5px; color:#e67e22; line-height:1.0; }
@@ -251,7 +252,7 @@ canvas { width:100%; display:block; }
 <!-- 历史模拟明细（全屏子网页） -->
 <div class="modal-mask" id="modalDetail"><div class="modal modal-full" id="modalDetailBody">
   <div class="modal-title" id="detailTitle"></div>
-  <div class="muted" style="font-size:11px;margin-bottom:4px;">预测号码 vs 真实开奖 · 命中率与派彩（单式一注，浮动奖取当期单注奖金）</div>
+  <div class="muted" id="detailSub" style="font-size:11px;margin-bottom:4px;">预测号码 vs 真实开奖 · 命中率与派彩（单式一注，浮动奖取当期单注奖金）</div>
   <div id="detailList"></div>
   <button class="modal-close" onclick="closeModal()">关闭</button>
 </div></div>
@@ -491,7 +492,7 @@ function prizeOf(simRed, simBlue, actRed, actBlue, iss){
 /* 历史模拟明细：全屏子网页，模拟号码 + 真实开奖 + 命中率 + 派彩奖金 */
 function openDetail(key){ var p = DATA.predictions;
   var recs = (p.records||[]).filter(function(r){ return r.hasActual; });
-  var list = recs.slice(-15).reverse();
+  var list = recs.slice(-200).reverse();
   var html = '';
   list.forEach(function(r){
     var g = firstGroupOf(r, key);
@@ -505,13 +506,14 @@ function openDetail(key){ var p = DATA.predictions;
       + '<div class="dr-line"><span class="dl">开奖</span>'+act+'</div></div>';
   });
   $('#detailTitle').textContent = '历史预测明细 · ' + (ALGO_NAMES[key]||key);
+  var sub = document.getElementById('detailSub');
+  if(sub) sub.textContent = '共 ' + recs.length + ' 期已开奖记录（由近及远）· 当前显示 ' + list.length + ' 期';
   $('#detailList').innerHTML = html || '<div class="loading">暂无</div>';
   showModal('modalDetail');
 }
 /* 绘制单条近10期命中率折线图（带数据标签，小数点保留 1 位，保留百分比符号） */
 function drawHitCv(cv){ var series = cv.dataset.series.split(',').map(Number); var W = cv.clientWidth||300, H = 120;
   cv.width = W*2; cv.height = H*2; cv.style.height = H+'px'; var ctx = cv.getContext('2d'); if(!ctx) return; ctx.scale(2,2);
-  ctx.strokeStyle='#eee'; ctx.lineWidth=1; for(var i=0;i<=4;i++){ var y=H*i/4; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
   var n=series.length; if(n<2) return;
   var top=20, base=H-8;
   function py(v){ return base - (v/100)*(base-top); }
